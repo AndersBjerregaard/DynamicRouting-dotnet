@@ -1,7 +1,13 @@
 ﻿using System.Text;
 using RabbitMQ.Client;
 
-var factory = new ConnectionFactory { HostName = "localhost", Port=5672 };
+var factory = new ConnectionFactory
+{
+    HostName = Environment.GetEnvironmentVariable("HostName") ?? "rabbitmq",
+    Port = Environment.GetEnvironmentVariable("Port") != default ? int.Parse(Environment.GetEnvironmentVariable("Port")) : 5672,
+    UserName = Environment.GetEnvironmentVariable("UserName") ?? "guest",
+    Password = Environment.GetEnvironmentVariable("UserName") ?? "guest"
+};
 using var connection = factory.CreateConnection();
 using var channel = connection.CreateModel();
 
@@ -10,7 +16,6 @@ channel.QueueDeclare(queue: "consumeProducer",
                      exclusive: false,
                      autoDelete: false,
                      arguments: null);
-
 
 const string message = "Hello World!";
 var body = Encoding.UTF8.GetBytes(message);

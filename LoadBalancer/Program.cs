@@ -7,16 +7,24 @@ namespace DynamicRouterRabbitMq
    
     internal class Program
     {
-         static List<string> queue = new List<string>();
+        static string consumerMsg = "";
+        static ManualResetEvent waitHandler = new ManualResetEvent(false);
         static void Main(string[] args)
         {
-            var factory = new ConnectionFactory { HostName = "localhost", Port=5672,
-            UserName="guest", Password="guest" };
+            
+
+            var factory = new ConnectionFactory
+            {
+                HostName = Environment.GetEnvironmentVariable("HostName") ?? "rabbitmq",
+                Port = Environment.GetEnvironmentVariable("Port") != default ? int.Parse(Environment.GetEnvironmentVariable("Port")) : 5672,
+                UserName = Environment.GetEnvironmentVariable("UserName") ?? "guest",
+                Password = Environment.GetEnvironmentVariable("UserName") ?? "guest"
+            };
         
 
             using var connection = factory.CreateConnection();
             using var channel = connection.CreateModel();
-
+            
 
             // declare a server-named queue
             var queueName = "loadQueues";
@@ -30,7 +38,7 @@ namespace DynamicRouterRabbitMq
                               exchange: "DR_Exchange",
                               routingKey: "");
 
-
+            channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
 
             Console.WriteLine(" [*] Waiting for messages.");
@@ -41,40 +49,30 @@ namespace DynamicRouterRabbitMq
             consumer.Received += (model, ea) => {
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
-                    queue.Add(message);
+                    consumerMsg = message;
                     System.Console.WriteLine(" [x] Received '{0}'", message);
+                    waitHandler.Set();
             };
             
-            consumerTwo.Received += (model, ea) =>
+            consumerTwo.Received += async (model, ea) =>
             {
                 var body = ea.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
-                if(ea.Exchange == "DR_Exchange"){
-
-                    queue.Add(message);
-
-                }
-                else{
-                  Console.WriteLine($" [x] Received '{message}'");
-
-                  bool running = true;
-                  while(running){
-                      // Publish
-                      foreach(var item in queue)
-                      {
-                         System.Console.WriteLine(item);
-                          channel.BasicPublish(exchange: "DR_Exchange",
-                                               routingKey: item,
-                                               basicProperties: null,
-                                               body: body);
-                          running = false;
-
-                      }
-                      System.Console.WriteLine("Waiting for Queues to be rdy...");
-                      Thread.Sleep(1000);
-
-                }
-                }
+        
+                System.Console.WriteLine(" [x] Sending '{0}'", message);
+                waitHandler.WaitOne();
+                // Publish
+                System.Console.WriteLine(consumerMsg);
+                channel.BasicPublish(exchange: string.Empty,
+                                         routingKey: consumerMsg,
+                                         basicProperties: null,
+                                         body: body);
+                    
+                
+                System.Console.WriteLine("Waiting for Queues to be rdy...");
+                Thread.Sleep(1000);
+                System.Console.WriteLine("Done");
+                waitHandler.Reset();
             };
 
 
@@ -88,6 +86,10 @@ namespace DynamicRouterRabbitMq
 
             Console.WriteLine(" Press [enter] to exit.");
             Console.ReadLine();
+
+            while(true){
+                
+            }
         }
     }
 }

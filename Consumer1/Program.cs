@@ -1,4 +1,4 @@
-﻿﻿﻿using RabbitMQ.Client;
+﻿﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 
@@ -8,7 +8,13 @@ namespace DynamicRouterRabbitMq
     {
         static void Main(string[] args)
         {
-            var factory = new ConnectionFactory { HostName = "localhost", Port=5672, UserName="guest", Password="guest" };
+            var factory = new ConnectionFactory
+            {
+                HostName = Environment.GetEnvironmentVariable("HostName") ?? "rabbitmq",
+                Port = Environment.GetEnvironmentVariable("Port") != default ? int.Parse(Environment.GetEnvironmentVariable("Port")) : 5672,
+                UserName = Environment.GetEnvironmentVariable("UserName") ?? "guest",
+                Password = Environment.GetEnvironmentVariable("UserName") ?? "guest"
+            };
             using var connection = factory.CreateConnection();
             using var channel = connection.CreateModel();
 
@@ -38,17 +44,18 @@ namespace DynamicRouterRabbitMq
                 channel.BasicPublish(exchange: "DR_Exchange", "", null, bodyTwo);
             };
 
-            channel.BasicPublish(exchange: "DR_Exchange",
-                         routingKey: "",
-                         basicProperties: null,
-                         body: Encoding.UTF8.GetBytes("Consumer2"));
+            
                          
             channel.BasicConsume(queue: "Consumer2",
                                  autoAck: true,
                                  consumer: consumer);
 
-            Console.WriteLine(" Press [enter] to exit.");
-            Console.ReadLine();
+            while(true){    
+                    channel.BasicPublish(exchange: "DR_Exchange",
+                         routingKey: "",
+                         basicProperties: null,
+                         body: Encoding.UTF8.GetBytes("Consumer2"));
+            }   
         }
     }
 }

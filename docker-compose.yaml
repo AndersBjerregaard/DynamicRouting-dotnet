@@ -1,0 +1,72 @@
+version: '${DockerVersion}'
+
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    restart: on-failure
+    image: rabbitmq:3.12.3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "${RabbitMQServer_OutPORT}:${RabbitMQServerPort}"
+      - "${RabbitMQManagement_OutPORT}:${RabbitMQManagementPort}"
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+
+  # rabbitmq_migrator:
+  #   image: rabbitmq:3.12.3-management-alpine
+  #   container_name: rabbitmq_migrator
+  #   restart: on-failure
+  #   command: ./init.sh
+  #   environment:
+  #     RABBITMQ_USER: guest
+  #     RABBITMQ_PASS: guest
+  #     RABBITMQ_HOST: rabbitmq 
+  #     RABBITMQ_PORT: 15672 # default port
+  #   volumes:
+  #     - ./rabbitmq/init.sh:/init.sh
+  #   depends_on:
+  #     - rabbitmq
+
+  producer:
+    container_name: producer
+    restart: on-failure
+    build:
+      context: ./Producer
+      dockerfile: Dockerfile
+    volumes:
+      - producer:/src
+    depends_on:
+      - rabbitmq
+  
+  loadbalancer:
+    container_name: loadbalancer
+    build:
+      context: ./loadbalancer
+      dockerfile: Dockerfile
+    volumes:
+      - loadbalancer:/app
+    depends_on:
+      - producer
+      - rabbitmq
+
+  consumer1:
+    container_name: consumer1
+    build:
+      context: ./consumer1
+      dockerfile: Dockerfile
+    volumes:
+      - consumer1:/app
+    depends_on:
+      - loadbalancer
+
+
+
+volumes:
+  loadbalancer:
+  producer:
+  consumer1:
+  rabbitmq:
+
+  
