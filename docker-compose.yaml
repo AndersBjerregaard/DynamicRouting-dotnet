@@ -12,6 +12,7 @@ services:
       - "${RabbitMQServer_OutPORT}:${RabbitMQServerPort}"
       - "${RabbitMQManagement_OutPORT}:${RabbitMQManagementPort}"
     volumes:
+      - ./rabbitmq:/etc/rabbitmq/conf.d
       - rabbitmq:/var/lib/rabbitmq
 
   # rabbitmq_migrator:
@@ -37,8 +38,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - producer:/src
-    depends_on:
-      - rabbitmq
+#    depends_on:
+#      - rabbitmq
   
   loadbalancer:
     container_name: loadbalancer
@@ -47,9 +48,9 @@ services:
       dockerfile: Dockerfile
     volumes:
       - loadbalancer:/app
-    depends_on:
-      - producer
-      - rabbitmq
+#    depends_on:
+#      - producer
+#      - rabbitmq
 
   consumer1:
     container_name: consumer1
@@ -58,15 +59,23 @@ services:
       dockerfile: Dockerfile
     volumes:
       - consumer1:/app
-    depends_on:
-      - loadbalancer
+#    depends_on:
+#      - loadbalancer
 
+  consumer2:
+    container_name: consumer2
+    build:
+      context: ./consumer1
+      dockerfile: Dockerfile
+    volumes:
+      - consumer2:/app
 
 
 volumes:
   loadbalancer:
   producer:
   consumer1:
+  consumer2:
   rabbitmq:
 
   

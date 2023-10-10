@@ -8,6 +8,7 @@ namespace DynamicRouterRabbitMq
     {
         static void Main(string[] args)
         {
+            string hostName = Environment.GetEnvironmentVariable("HOSTNAME") ?? "HARDCODED_CONSUMERNAME1";
             var factory = new ConnectionFactory
             {
                 HostName = Environment.GetEnvironmentVariable("HostName") ?? "rabbitmq",
@@ -20,41 +21,44 @@ namespace DynamicRouterRabbitMq
 
             channel.ExchangeDeclare(exchange: "DR_Exchange", type: ExchangeType.Direct);
 
-            channel.QueueDeclare("Consumer2",false,false,false, null);
+            channel.QueueDeclare(hostName,false,false,false, null);
 
             channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-            Console.WriteLine(" [*] Waiting for messages.");
+            Console.WriteLine($"[consumer {hostName}]: Waiting for messages.");
 
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received += (model, ea) =>
             {
                 byte[] body = ea.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
-                Console.WriteLine($" [x] Received {message}");
+                Console.WriteLine($" [consumer {hostName}]: Received {message}");
 
-                Thread.Sleep(5000);
+                Thread.Sleep(1100);
 
-                Console.WriteLine(" [x] Done");
+                Console.WriteLine($"[consumer {hostName}]: Done");
 
 
-                var messageTwo = "Hello World! from Consumer 2";
+                var messageTwo = hostName;
                 var bodyTwo = Encoding.UTF8.GetBytes(messageTwo);
 
-                channel.BasicPublish(exchange: "DR_Exchange", "", null, bodyTwo);
+                channel.BasicPublish(exchange: "DR_Exchange",
+                    routingKey: "",
+                    basicProperties: null,
+                    body: Encoding.UTF8.GetBytes(hostName));
             };
 
             
                          
-            channel.BasicConsume(queue: "Consumer2",
+            channel.BasicConsume(queue: hostName,
                                  autoAck: true,
                                  consumer: consumer);
 
+            channel.BasicPublish(exchange: "DR_Exchange",
+                    routingKey: "",
+                    basicProperties: null,
+                    body: Encoding.UTF8.GetBytes(hostName));
             while(true){    
-                    channel.BasicPublish(exchange: "DR_Exchange",
-                         routingKey: "",
-                         basicProperties: null,
-                         body: Encoding.UTF8.GetBytes("Consumer2"));
             }   
         }
     }

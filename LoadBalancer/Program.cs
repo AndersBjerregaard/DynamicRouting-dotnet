@@ -9,10 +9,10 @@ namespace DynamicRouterRabbitMq
     {
         static string consumerMsg = "";
         static ManualResetEvent waitHandler = new ManualResetEvent(false);
+        static Queue<string> readyConsumers = new Queue<string>();
         static void Main(string[] args)
         {
             
-
             var factory = new ConnectionFactory
             {
                 HostName = Environment.GetEnvironmentVariable("HostName") ?? "rabbitmq",
@@ -38,51 +38,59 @@ namespace DynamicRouterRabbitMq
                               exchange: "DR_Exchange",
                               routingKey: "");
 
-            channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+            // channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
 
             Console.WriteLine(" [*] Waiting for messages.");
 
-            var consumer = new EventingBasicConsumer(channel);
-            var consumerTwo = new EventingBasicConsumer(channel);
+            var fromConsumers = new EventingBasicConsumer(channel);
+            var fromProducer = new EventingBasicConsumer(channel);
             
-            consumer.Received += (model, ea) => {
+            fromConsumers.Received += async (model, ea) => {
+                    Console.WriteLine("message received from consumer");
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
-                    consumerMsg = message;
+                    readyConsumers.Enqueue(message);
                     System.Console.WriteLine(" [x] Received '{0}'", message);
+                    System.Console.WriteLine($"length of queue is now {readyConsumers.Count} ");
                     waitHandler.Set();
             };
             
-            consumerTwo.Received += async (model, ea) =>
+            fromProducer.Received += async (model, ea) =>
             {
                 var body = ea.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
-        
-                System.Console.WriteLine(" [x] Sending '{0}'", message);
+                Console.WriteLine($"[loadbalancer]: received {message} from producer");
+                
+                Console.WriteLine("weeeeeee");
+                
                 waitHandler.WaitOne();
+                System.Console.WriteLine(" [x] Sending '{0}'", message);
                 // Publish
-                System.Console.WriteLine(consumerMsg);
+                string consumerQueue = readyConsumers.Dequeue();
+                Console.WriteLine($"should send to consumer {consumerQueue}");
+                System.Console.WriteLine(consumerQueue + ": is ready");
                 channel.BasicPublish(exchange: string.Empty,
-                                         routingKey: consumerMsg,
+                                         routingKey: consumerQueue,
                                          basicProperties: null,
                                          body: body);
-                    
-                
-                System.Console.WriteLine("Waiting for Queues to be rdy...");
+                if (readyConsumers.Count < 1)
+                {
+                    Console.WriteLine("readyConsumers count was 0 or less");
+                    waitHandler.Reset();
+                }
                 Thread.Sleep(1000);
-                System.Console.WriteLine("Done");
-                waitHandler.Reset();
+                
             };
 
 
             channel.BasicConsume(queue: queueName,
                                  autoAck: true,
-                                 consumer: consumer);
+                                 consumer: fromConsumers);
 
             channel.BasicConsume(queue: "consumeProducer",
                                  autoAck: true,
-                                 consumer: consumerTwo);
+                                 consumer: fromProducer);
 
             Console.WriteLine(" Press [enter] to exit.");
             Console.ReadLine();
