@@ -1,0 +1,84 @@
+{
+    "rabbit_version": "3.12.3",
+    "rabbitmq_version": "3.12.3",
+    "product_name": "RabbitMQ",
+    "product_version": "3.12.3",
+    "users": [
+        {
+            "name": "guest",
+            "password_hash": "eTBto1u93dp3s2Bzja6h6SXYNWjegkGulvclKALE2nirUjOl",
+            "hashing_algorithm": "rabbit_password_hashing_sha256",
+            "tags": [
+                "administrator"
+            ],
+            "limits": {}
+        }
+    ],
+    "vhosts": [
+        {
+            "name": "/"
+        }
+    ],
+    "permissions": [
+        {
+            "user": "guest",
+            "vhost": "/",
+            "configure": ".*",
+            "write": ".*",
+            "read": ".*"
+        }
+    ],
+    "topic_permissions": [],
+    "parameters": [],
+    "global_parameters": [
+        {
+            "name": "internal_cluster_id",
+            "value": "rabbitmq-cluster-id-EOuLt325v2lgKiXnSrTRdA"
+        }
+    ],
+    "policies": [],
+    "queues": [
+        {
+            "name": "6c07071d15af",
+            "vhost": "/",
+            "durable": false,
+            "auto_delete": false,
+            "arguments": {}
+        },
+        {
+            "name": "consumeProducer",
+            "vhost": "/",
+            "durable": false,
+            "auto_delete": false,
+            "arguments": {}
+        },
+        {
+            "name": "loadQueues",
+            "vhost": "/",
+            "durable": false,
+            "auto_delete": false,
+            "arguments": {}
+        }
+    ],
+    "exchanges": [
+        {
+            "name": "DR_Exchange",
+            "vhost": "/",
+            "type": "direct",
+            "durable": false,
+            "auto_delete": false,
+            "internal": false,
+            "arguments": {}
+        }
+    ],
+    "bindings": [
+        {
+            "source": "DR_Exchange",
+            "vhost": "/",
+            "destination": "loadQueues",
+            "destination_type": "queue",
+            "routing_key": "",
+            "arguments": {}
+        }
+    ]
+}
