@@ -20,11 +20,9 @@ namespace DynamicRouterRabbitMq
                 UserName = Environment.GetEnvironmentVariable("UserName") ?? "guest",
                 Password = Environment.GetEnvironmentVariable("UserName") ?? "guest"
             };
-        
 
             using var connection = factory.CreateConnection();
             using var channel = connection.CreateModel();
-            
 
             // declare a server-named queue
             var queueName = "loadQueues";
@@ -37,8 +35,6 @@ namespace DynamicRouterRabbitMq
             channel.QueueBind(queue: queueName,
                               exchange: "DR_Exchange",
                               routingKey: "");
-
-            // channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
 
             Console.WriteLine(" [*] Waiting for messages.");
@@ -62,8 +58,6 @@ namespace DynamicRouterRabbitMq
                 var message = Encoding.UTF8.GetString(body);
                 Console.WriteLine($"[loadbalancer]: received {message} from producer");
                 
-                Console.WriteLine("weeeeeee");
-                
                 waitHandler.WaitOne();
                 System.Console.WriteLine(" [x] Sending '{0}'", message);
                 // Publish
@@ -76,13 +70,11 @@ namespace DynamicRouterRabbitMq
                                          body: body);
                 if (readyConsumers.Count < 1)
                 {
-                    Console.WriteLine("readyConsumers count was 0 or less");
                     waitHandler.Reset();
                 }
                 Thread.Sleep(1000);
                 
             };
-
 
             channel.BasicConsume(queue: queueName,
                                  autoAck: true,
@@ -94,10 +86,6 @@ namespace DynamicRouterRabbitMq
 
             Console.WriteLine(" Press [enter] to exit.");
             Console.ReadLine();
-
-            while(true){
-                
-            }
         }
     }
 }
